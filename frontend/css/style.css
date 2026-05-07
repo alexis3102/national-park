@@ -1,0 +1,300 @@
+/* --- VARIABLES Y CONFIGURACIÓN BASE --- */
+:root {
+    --bg-main: #050505;        /* Fondo base casi negro */
+    --bg-section: #0f0f11;     /* Fondo sutil para la sección del mapa */
+    --bg-card: #141414;        /* Fondo oscuro para las tarjetas */
+    --accent-gold: #eab308;    /* Amarillo/Dorado principal */
+    --text-muted: #9ca3af;     /* Texto gris claro */
+    --text-light: #f3f4f6;     /* Texto blanco/crema */
+    --font-main: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-muted);
+    font-family: var(--font-main);
+    line-height: 1.6;
+    padding: 40px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 80px;
+}
+
+.highlight {
+    color: var(--accent-gold);
+}
+
+h1, h2, h3 {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* --- BOTONES --- */
+.btn {
+    display: inline-block;
+    text-decoration: none;
+    color: var(--accent-gold);
+    border: 1px solid var(--accent-gold);
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.btn:hover {
+    background-color: rgba(234, 179, 8, 0.1);
+}
+
+.btn-small {
+    padding: 6px 24px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+}
+
+/* --- SECCIÓN HERO --- */
+#hero {
+    display: flex;
+    align-items: center;
+    gap: 60px;
+    justify-content: space-between;
+}
+
+.hero-content {
+    flex: 1;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.brand-icon {
+    width: 35px;
+}
+
+.brand-name {
+    font-size: 2.8rem;
+    color: var(--accent-gold);
+}
+
+.hero-text {
+    color: var(--text-light);
+    font-size: 1.05rem;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 20px;
+}
+
+.hero-image-wrapper {
+    flex: 1.5;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.hero-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 16px;
+    object-fit: cover;
+}
+
+/* --- SISTEMA GRID (TARJETAS) --- */
+.grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+}
+
+.card {
+    background-color: var(--bg-card);
+    padding: 35px 25px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.card-transparent {
+    background-color: transparent;
+    padding-left: 0;
+    padding-top: 10px;
+}
+
+.card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.card-icon {
+    width: 35px;
+    height: 35px;
+    object-fit: contain;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    line-height: 1.4;
+}
+
+/* --- SECCIÓN LUGAR / MAPA --- */
+#place {
+    display: flex;
+    gap: 60px;
+    background-color: var(--bg-section);
+    padding: 40px;
+    border-radius: 16px;
+    align-items: flex-start;
+}
+
+.map-wrapper {
+    flex: 1.3;
+}
+
+.map-img {
+    width: 100%;
+    border-radius: 12px;
+    display: block;
+}
+
+.place-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    color: var(--text-light);
+}
+
+.section-title {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+}
+
+/* --- FOOTER --- */
+.footer-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-right: 20px;
+}
+
+.contact {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.contact-icon {
+    width: 30px;
+}
+
+.contact-number {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.card-social {
+    align-items: center;
+    gap: 15px;
+}
+
+.social-icon {
+    width: 45px;
+    height: 45px;
+}
+
+.center-btn {
+    margin-top: auto;
+}
+
+/* =========================================
+   DISEÑO RESPONSIVO (Media Queries)
+   ========================================= */
+
+/* --- TABLETS (Hasta 1024px) --- */
+@media (max-width: 1024px) {
+    .container {
+        padding: 20px;
+        gap: 60px;
+    }
+
+    #hero, #place {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .hero-content {
+        max-width: 100%;
+        align-items: center;
+    }
+
+    .brand, .hero-actions {
+        justify-content: center;
+    }
+
+    .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .map-wrapper, .place-text {
+        width: 100%;
+    }
+}
+
+/* --- MÓVILES (Hasta 768px) --- */
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+
+    .brand-name {
+        font-size: 2.2rem;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn {
+        width: 100%;
+    }
+
+    .grid-4 {
+        grid-template-columns: 1fr;
+    }
+
+    .card-transparent, .card-header, .footer-main {
+        text-align: center;
+        align-items: center;
+    }
+
+    .contact {
+        justify-content: center;
+    }
+}
