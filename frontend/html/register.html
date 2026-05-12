@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boreal - Register</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/register.css">
+</head>
+<body class="register-body">
+    <main class="register-container">
+        
+        <section class="register-image-section">
+            <img src="../img/fondos/conducir.png" alt="conduciendo" class="register-img">
+        </section>
+
+        <section class="register-form-section">
+            <div class="brand-header">
+                <h1 class="brand-title">Boreal</h1>
+                <p class="brand-subtitle">You explored the forest in all its richness.</p>
+            </div>
+
+            <form class="register-form" action="#">
+                <div class="input-group">
+                    <label for="name">name:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="password">password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="email">email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="inline-group">
+                    <div class="gender-group">
+                        <span class="label-text">gender:</span>
+                        <select name="gender" id="gender" class="gender-select">
+                            <option value="M">M</option>
+                            <option value="W">W</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group age-group">
+                        <label for="age">age:</label>
+                        <input type="number" id="age" name="age" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn continue-btn">continue</button>
+
+                <p class="login-link">do you have account? <a href="login.html">login</a></p>
+            </form>
+        </section>
+
+    </main>
+    <script src="../javascript/register.js"></script>
+</body>
+</html>
