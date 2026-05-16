@@ -1,6 +1,6 @@
 from datetime import date, time
-
-from sqlmodel import Field 
+from typing import Optional
+from sqlmodel import SQLModel, Field
 
 from .user_mod import engine
 from sqlmodel import SQLModel
@@ -17,3 +17,10 @@ class event_mod(SQLModel, table=True):
     edad_minima: int
     hora: time
     categoria: str
+
+class imagen_mod(SQLModel, table=True):
+    __tablename__ = "imagen"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    evento_id: int
+    url: str

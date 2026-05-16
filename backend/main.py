@@ -18,6 +18,9 @@ from backend.schema.admit_sch import (
     delete_user_schema)
 
 from backend.other.auth import verify_admit
+from fastapi import File, UploadFile
+from backend.model.eventos_mod import imagen_mod
+import shutil, os
 
 
 create_all_tables()
@@ -132,7 +135,37 @@ def inscripcion(data: incripcion):
         session.commit()
         session.refresh(nueva_inscripcion)
         return {"status": "ok", "data": nueva_inscripcion}
-    
+
+@app.get("/mis_inscripciones/", tags=['user'])
+def mis_inscripciones(usuario_id: int):
+    with Session(engine) as session:
+        inscripciones = session.exec(
+            select(incripcionModel).where(incripcionModel.usuario_id == usuario_id)
+        ).all()
+
+        if not inscripciones:
+            return {"status": "error", "message": "no tienes inscripciones"}
+
+        resultado = []
+        for ins in inscripciones:
+            evento = session.exec(
+                select(event_mod).where(event_mod.id == ins.evento_id)
+            ).first()
+            resultado.append({
+                "inscripcion_id": ins.id,
+                "fecha_inscripcion": ins.fecha,
+                "evento": {
+                    "id": evento.id,
+                    "nombre": evento.nombre,
+                    "descripcion": evento.descripcion,
+                    "fecha": evento.fecha,
+                    "hora": evento.hora,
+                    "categoria": evento.categoria,
+                    "cupos": evento.cupos
+                }
+            })
+
+        return {"status": "ok", "data": resultado}
 # --- ADMIT --------------------------------------------------------------------
 
 @app.get("/bring_all_usuarios_menu/", tags=['admit'])
