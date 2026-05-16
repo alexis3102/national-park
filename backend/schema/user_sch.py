@@ -19,3 +19,6 @@ class incripcion(BaseModel):
     usuario_id: int
     evento_id: int
     fecha: date
+
+class menu_categoria(BaseModel):
+    categoria: str

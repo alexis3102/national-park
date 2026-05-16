@@ -5,7 +5,7 @@ from backend.model.user_mod import UserModel, engine, incripcionModel
 from backend.model import create_all_tables, user_mod
 from backend.model.eventos_mod import event_mod
 
-from backend.schema.user_sch import user_schema, login_schem, incripcion
+from backend.schema.user_sch import user_schema, login_schem, incripcion, menu_categoria
 from backend.schema.admit_sch import (
     creted_event_schema,
     search_event_schema,
@@ -29,15 +29,16 @@ app.add_middleware(
 )
 
 # --- USUARIOS --------------------------------------------------------------------
-
-@app.get("/bring_all_usuarios_menu/", tags=['event'])
-def bring_all_usuarios_menu ():
+@app.get("/bring_all_categoria_menu/", tags=['user'])
+def bring_all_categoria_menu(data: menu_categoria):
     with Session(engine) as session:
-        result = session.exec(select(UserModel)).all()
-        if not result:
-            return {"status": "error", "message": "no hay eventos disponibles"}
-        return {"status": "ok", "data": result}
+        querry = select(event_mod).where(event_mod.categoria == data.categoria)
+        result = session.exec(querry).all()
     
+        if not result:
+            return {"status": "error", "message": "no hay eventos en esa categoria"}
+        return {"status": "ok", "data": result}
+
 @app.post("/create_user/", tags=['user'])
 def cread_user(user: user_schema):
     with Session(user_mod.engine) as session:
@@ -80,7 +81,7 @@ def inscripcion(data: incripcion):
         
         #verifica que el usuario existe
         usuario = session.exec(
-            select(user_mod).where(UserModel.id == data.usuario_id)
+            select(UserModel).where(UserModel.id == data.usuario_id)
         ).first()
         if not usuario:
             return {"status": "error", "mesage": "el usuario no existe"}
@@ -96,7 +97,7 @@ def inscripcion(data: incripcion):
             return {"status": "error", "message": "el usuario ya esta inscripto en el evento"}
 
         #verifica cupos disponibles
-        if evento.cupos >= 0:
+        if evento.cupos <= 0:
             return {"status": "error", "message":"no hay cupos disponibles"}
         
         #verifica eadd minima del evento
@@ -124,13 +125,21 @@ def inscripcion(data: incripcion):
     
 # --- ADMIT --------------------------------------------------------------------
 
+@app.get("/bring_all_usuarios_menu/", tags=['admit'])
+def bring_all_usuarios_menu ():
+    with Session(engine) as session:
+        result = session.exec(select(UserModel)).all()
+        if not result:
+            return {"status": "error", "message": "no hay eventos disponibles"}
+        return {"status": "ok", "data": result}
+
 @app.get("/search_user/", tags=['admit'])
 def search_usuario(data: search_user_schema):
     with Session(engine) as session:
         querry = select(UserModel)
         if data.id is not None:
             querry = querry.where(UserModel.id == data.id)
-        if data.fecha is not None:
+        if data.nombre is not None:
             querry = querry.where(UserModel.nombre == data.nombre)
         result = session.exec(querry).first()
     
@@ -138,15 +147,18 @@ def search_usuario(data: search_user_schema):
             return {"status": "error", "message": "no existe usuario"}
         return {"status": "ok", "data":{
             "id": result.id,
-            "nombre": result.nombre
+            "nombre": result.nombre,
+            "gmail": result.email,
+            "contrasena": result.contrasena,
+            "edad": result.edad,
+            "genero": result.genero
         }}
     
 @app.put("/update_user/", tags=['admit'])
 def update_usuario(data: update_user_schema):
     with Session(engine) as session:
         querry= select(UserModel).where(
-            UserModel.id == data.id,
-            UserModel.nombre == data.nombre
+            UserModel.id == data.id
         )
         result = session.exec(querry).first()
         if not result:
@@ -239,11 +251,10 @@ def search_event(data: search_event_schema):
 @app.put("/update_event/", tags=['event'])
 def update_event(data: update_event_schema):
     with Session(engine) as session:
-        querry= select(event_mod).where(
-            event_mod.id == data.id,
-            event_mod.nombre == data.nombre
-        )
-        result = session.exec(querry).first()
+        result = session.exec(
+            select(event_mod).where(event_mod.id == data.id)
+        ).first()
+
         if not result:
             return {"status": "error", "mensajer":"no existe este evento"}
         if data.nombre_new is not None: result.nombre = data.nombre_new

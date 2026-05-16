@@ -9,8 +9,7 @@ class search_user_schema(BaseModel):
     nombre: str | None = None
 
 class update_user_schema(BaseModel):
-    id: str
-    nombre: str
+    id: int
     nuevo_nombre: str | None = None
     nueva_contraseña: str | None = None
     nuevo_gmail: str | None = None
@@ -42,7 +41,6 @@ class search_event_schema(BaseModel):
 
 class update_event_schema(BaseModel):
     id: int
-    nombre: str
     nombre_new: str | None = None
     fecha_new: date | None = None
     hora_new: time | None = None
