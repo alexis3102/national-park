@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware 
 from sqlmodel import Session, select
 from backend.model.user_mod import UserModel, engine, incripcionModel
 from backend.model import create_all_tables, user_mod
 from backend.model.eventos_mod import event_mod
+from backend.password import ADMIN_NAME, ADMIN_PASS
 
 from backend.schema.user_sch import user_schema, login_schem, incripcion, menu_categoria
 from backend.schema.admit_sch import (
@@ -16,6 +17,7 @@ from backend.schema.admit_sch import (
     update_user_schema,
     delete_user_schema)
 
+from backend.other.auth import verify_admit
 
 
 create_all_tables()
@@ -57,6 +59,14 @@ def cread_user(user: user_schema):
 
 @app.post("/login/", tags=['user'])
 def login(data: login_schem):
+
+    if data.nombre == ADMIN_NAME and data.contrasena == ADMIN_PASS:
+        return {
+            "status":"ok",
+            "role":"admit",
+            "data": {"usuario": ADMIN_NAME}
+        }
+
     with Session(engine) as session:
         search = select(UserModel).where(
             UserModel.nombre == data.nombre,
@@ -126,7 +136,7 @@ def inscripcion(data: incripcion):
 # --- ADMIT --------------------------------------------------------------------
 
 @app.get("/bring_all_usuarios_menu/", tags=['admit'])
-def bring_all_usuarios_menu ():
+def bring_all_usuarios_menu (_=Depends(verify_admit)):
     with Session(engine) as session:
         result = session.exec(select(UserModel)).all()
         if not result:
@@ -134,7 +144,7 @@ def bring_all_usuarios_menu ():
         return {"status": "ok", "data": result}
 
 @app.get("/search_user/", tags=['admit'])
-def search_usuario(data: search_user_schema):
+def search_usuario(data: search_user_schema, _=Depends(verify_admit)):
     with Session(engine) as session:
         querry = select(UserModel)
         if data.id is not None:
@@ -155,7 +165,7 @@ def search_usuario(data: search_user_schema):
         }}
     
 @app.put("/update_user/", tags=['admit'])
-def update_usuario(data: update_user_schema):
+def update_usuario(data: update_user_schema,_=Depends(verify_admit)):
     with Session(engine) as session:
         querry= select(UserModel).where(
             UserModel.id == data.id
@@ -174,7 +184,7 @@ def update_usuario(data: update_user_schema):
         return {"status": "ok", "mesaje": "usuario actualizado"}    
 
 @app.delete("/delete_user/", tags=['admit'])
-def delete_usuario(data: delete_user_schema):
+def delete_usuario(data: delete_user_schema,_=Depends(verify_admit)):
     with Session(engine) as session:
         querry = select(UserModel).where(
             UserModel.id == data.id
@@ -189,7 +199,7 @@ def delete_usuario(data: delete_user_schema):
 # --- EVENTOS ------------------------------------------------------------------
 
 @app.get("/bring_all_event_menu/", tags=['event'])
-def bring_all_event_menu ():
+def bring_all_event_menu (_=Depends(verify_admit)):
     with Session(engine) as session:
         result = session.exec(select(event_mod)).all()
         if not result:
@@ -199,7 +209,7 @@ def bring_all_event_menu ():
 
 
 @app.post("/created_event/", tags=['event'])
-def created_event(data: creted_event_schema):
+def created_event(data: creted_event_schema,_=Depends(verify_admit)):
     with Session(engine) as session:
         db_eventos = event_mod(
             nombre=data.nombre,
@@ -217,7 +227,7 @@ def created_event(data: creted_event_schema):
 
 
 @app.get("/search_event/", tags=['event'])
-def search_event(data: search_event_schema):
+def search_event(data: search_event_schema,_=Depends(verify_admit)):
     with Session(engine) as session:
         querry = select(event_mod)
         if data.id is not None:
@@ -249,7 +259,7 @@ def search_event(data: search_event_schema):
 
 
 @app.put("/update_event/", tags=['event'])
-def update_event(data: update_event_schema):
+def update_event(data: update_event_schema,_=Depends(verify_admit)):
     with Session(engine) as session:
         result = session.exec(
             select(event_mod).where(event_mod.id == data.id)
@@ -270,7 +280,7 @@ def update_event(data: update_event_schema):
 
 
 @app.delete("/delete_event/", tags=['event'])
-def delete_event(data: detele_event_schema):
+def delete_event(data: detele_event_schema,_=Depends(verify_admit)):
     with Session(engine) as session:
         querry = select(event_mod).where(
             event_mod.id == data.id
