@@ -10,7 +10,11 @@ from backend.schema.admit_sch import (
     creted_event_schema,
     search_event_schema,
     update_event_schema,
-    detele_event_schema)
+    detele_event_schema,
+    
+    search_user_schema,
+    update_user_schema,
+    delete_user_schema)
 
 
 
@@ -26,6 +30,14 @@ app.add_middleware(
 
 # --- USUARIOS --------------------------------------------------------------------
 
+@app.get("/bring_all_usuarios_menu/", tags=['event'])
+def bring_all_usuarios_menu ():
+    with Session(engine) as session:
+        result = session.exec(select(UserModel)).all()
+        if not result:
+            return {"status": "error", "message": "no hay eventos disponibles"}
+        return {"status": "ok", "data": result}
+    
 @app.post("/create_user/", tags=['user'])
 def cread_user(user: user_schema):
     with Session(user_mod.engine) as session:
@@ -55,7 +67,7 @@ def login(data: login_schem):
         return {"status": "ok", "data": {"usuario": result.nombre, "contrasena": result.contrasena}}
 
 
-@app.post("inscripcion", tags=['user'])
+@app.post("/inscripcion/", tags=['user'])
 def inscripcion(data: incripcion):
     with Session(engine) as session:
         
@@ -112,10 +124,67 @@ def inscripcion(data: incripcion):
     
 # --- ADMIT --------------------------------------------------------------------
 
+@app.get("/search_user/", tags=['admit'])
+def search_usuario(data: search_user_schema):
+    with Session(engine) as session:
+        querry = select(UserModel)
+        if data.id is not None:
+            querry = querry.where(UserModel.id == data.id)
+        if data.fecha is not None:
+            querry = querry.where(UserModel.nombre == data.nombre)
+        result = session.exec(querry).first()
+    
+        if not result:
+            return {"status": "error", "message": "no existe usuario"}
+        return {"status": "ok", "data":{
+            "id": result.id,
+            "nombre": result.nombre
+        }}
+    
+@app.put("/update_user/", tags=['admit'])
+def update_usuario(data: update_user_schema):
+    with Session(engine) as session:
+        querry= select(UserModel).where(
+            UserModel.id == data.id,
+            UserModel.nombre == data.nombre
+        )
+        result = session.exec(querry).first()
+        if not result:
+            return {"status": "error", "mensajer":"no existe este usuario"}
+        if data.nuevo_nombre is not None: result.nombre = data.nuevo_nombre
+        if data.nueva_contraseña is not None: result.contrasena = data.nueva_contraseña
+        if data.nuevo_gmail is not None: result.email = data.nuevo_gmail
+        if data.nuevo_genero is not None: result.genero = data.nuevo_genero
+        if data.nuevo_edad is not None: result.edad = data.nuevo_edad
 
+        session.add(result)
+        session.commit()
+        return {"status": "ok", "mesaje": "usuario actualizado"}    
 
+@app.delete("/delete_user/", tags=['admit'])
+def delete_usuario(data: delete_user_schema):
+    with Session(engine) as session:
+        querry = select(UserModel).where(
+            UserModel.id == data.id
+        )
+        result = session.exec(querry).first()
+        if not result:
+            return {"status": "error", "mesage": "no existe el usuario"}
+        session.delete(result)
+        session.commit()
+        return {"status": "ok", "message": f"'{data.id}' eliminado"}    
 
 # --- EVENTOS ------------------------------------------------------------------
+
+@app.get("/bring_all_event_menu/", tags=['event'])
+def bring_all_event_menu ():
+    with Session(engine) as session:
+        result = session.exec(select(event_mod)).all()
+        if not result:
+            if not result:
+                return {"status": "error", "message": "no hay eventos disponibles"}
+            return {"status": "ok", "data": result}
+
 
 @app.post("/created_event/", tags=['event'])
 def created_event(data: creted_event_schema):
@@ -189,7 +258,7 @@ def update_event(data: update_event_schema):
         return {"status": "ok", "mesaje": "evento actualizado"}
 
 
-@app.delete("/delete_user/", tags=['event'])
+@app.delete("/delete_event/", tags=['event'])
 def delete_event(data: detele_event_schema):
     with Session(engine) as session:
         querry = select(event_mod).where(

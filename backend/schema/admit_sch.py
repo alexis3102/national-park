@@ -4,17 +4,21 @@ from pydantic import BaseModel
 from backend.model.user_mod import GeneroEnum
 
 #-------- USER ------------------------------------------
+class search_user_schema(BaseModel):
+    id: int | None = None
+    nombre: str | None = None
 
-class update_admit_schema(BaseModel):
+class update_user_schema(BaseModel):
+    id: str
     nombre: str
-    nuevo_nombre: str
-    nueva_contraseña: str
-    nuevo_gmail: str
-    nuevo_genero: GeneroEnum
-    nuevo_edad: int
+    nuevo_nombre: str | None = None
+    nueva_contraseña: str | None = None
+    nuevo_gmail: str | None = None
+    nuevo_genero: GeneroEnum | None = None
+    nuevo_edad: int | None = None
 
-class delete_admit_schema(BaseModel):
-    ID: int
+class delete_user_schema(BaseModel):
+    id: int
 
 # ------ EVENTOS ----------------------------------------
    
