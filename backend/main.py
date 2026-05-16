@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Depends
+from datetime import date, time  
+
+from fastapi import FastAPI, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware 
 from sqlmodel import Session, select
 from backend.model.user_mod import UserModel, engine, incripcionModel
@@ -21,7 +23,7 @@ from backend.other.auth import verify_admit
 from fastapi import File, UploadFile
 from backend.model.eventos_mod import imagen_mod
 import shutil, os
-
+from fastapi.staticfiles import StaticFiles
 
 create_all_tables()
 app = FastAPI()
@@ -32,17 +34,40 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# --- IMAGENES --------------------------------------------------------------------
+
+os.makedirs("backend/img", exist_ok=True)
+app.mount("/img", StaticFiles(directory="backend/img"), name="img")
+
+def get_imagen_url(session, evento_id: int):
+    img = session.exec(
+        select(imagen_mod).where(imagen_mod.evento_id == evento_id)
+    ).first()
+    return img.url if img else None
+
 
 # --- USUARIOS --------------------------------------------------------------------
-@app.get("/bring_all_categoria_menu/", tags=['user'])
-def bring_all_categoria_menu(data: menu_categoria):
+@app.get("/bring_all_event_menu/", tags=['event'])
+def bring_all_event_menu(_=Depends(verify_admit)):
     with Session(engine) as session:
-        querry = select(event_mod).where(event_mod.categoria == data.categoria)
-        result = session.exec(querry).all()
-    
+        result = session.exec(select(event_mod)).all()
         if not result:
-            return {"status": "error", "message": "no hay eventos en esa categoria"}
-        return {"status": "ok", "data": result}
+            return {"status": "error", "message": "no hay eventos disponibles"}
+        
+        data = []
+        for evento in result:
+            data.append({
+                "id": evento.id,
+                "nombre": evento.nombre,
+                "descripcion": evento.descripcion,
+                "fecha": evento.fecha,
+                "hora": evento.hora,
+                "categoria": evento.categoria,
+                "cupos": evento.cupos,
+                "edad_minima": evento.edad_minima,
+                "imagen": get_imagen_url(session, evento.id)
+            })
+        return {"status": "ok", "data": data}
 
 @app.post("/create_user/", tags=['user'])
 def cread_user(user: user_schema):
@@ -78,7 +103,7 @@ def login(data: login_schem):
         result = session.exec(search).first()
         if not result:
             return {"status": "error", "message": "no existe el usuario"}
-        return {"status": "ok", "data": {"usuario": result.nombre, "contrasena": result.contrasena}}
+        return {"status": "ok", "role": "user", "data": {"id": result.id, "usuario": result.nombre}}
 
 
 @app.post("/inscripcion/", tags=['user'])
@@ -161,10 +186,10 @@ def mis_inscripciones(usuario_id: int):
                     "fecha": evento.fecha,
                     "hora": evento.hora,
                     "categoria": evento.categoria,
-                    "cupos": evento.cupos
+                    "cupos": evento.cupos,
+                    "imagen": get_imagen_url(session, evento.id)
                 }
             })
-
         return {"status": "ok", "data": resultado}
 # --- ADMIT --------------------------------------------------------------------
 
@@ -231,36 +256,78 @@ def delete_usuario(data: delete_user_schema,_=Depends(verify_admit)):
 
 # --- EVENTOS ------------------------------------------------------------------
 
-@app.get("/bring_all_event_menu/", tags=['event'])
-def bring_all_event_menu (_=Depends(verify_admit)):
+@app.get("/bring_all_categoria_menu/", tags=['user'])
+def bring_all_categoria_menu(data: menu_categoria):
     with Session(engine) as session:
-        result = session.exec(select(event_mod)).all()
+        querry = select(event_mod).where(event_mod.categoria == data.categoria)
+        result = session.exec(querry).all()
+
         if not result:
-            if not result:
-                return {"status": "error", "message": "no hay eventos disponibles"}
-            return {"status": "ok", "data": result}
+            return {"status": "error", "message": "no hay eventos en esa categoria"}
+
+        data_result = []
+        for evento in result:
+            data_result.append({
+                "id": evento.id,
+                "nombre": evento.nombre,
+                "descripcion": evento.descripcion,
+                "fecha": evento.fecha,
+                "hora": evento.hora,
+                "categoria": evento.categoria,
+                "cupos": evento.cupos,
+                "edad_minima": evento.edad_minima,
+                "imagen": get_imagen_url(session, evento.id)
+            })
+        return {"status": "ok", "data": data_result}
 
 
 @app.post("/created_event/", tags=['event'])
-def created_event(data: creted_event_schema,_=Depends(verify_admit)):
+async def created_event(
+    nombre: str = Form(...),
+    descripcion: str = Form(...),
+    fecha: date = Form(...),
+    hora: time = Form(...),
+    cupos: int = Form(...),
+    edad_minima: int = Form(...),
+    categoria: str = Form(...),
+    imagen: UploadFile = File(None),  # opcional
+    _=Depends(verify_admit)
+):
     with Session(engine) as session:
-        db_eventos = event_mod(
-            nombre=data.nombre,
-            descripcion=data.descripcion,
-            fecha=data.fecha,
-            cupos=data.cupos,
-            edad_minima=data.edad_minima,
-            hora=data.hora,
-            categoria=data.categoria
+        db_evento = event_mod(
+            nombre=nombre,
+            descripcion=descripcion,
+            fecha=fecha,
+            cupos=cupos,
+            edad_minima=edad_minima,
+            hora=hora,
+            categoria=categoria
         )
-        session.add(db_eventos)
+        session.add(db_evento)
         session.commit()
-        session.refresh(db_eventos)
-        return db_eventos
+        session.refresh(db_evento)
+
+        if imagen:
+            carpeta = "backend/img"
+            os.makedirs(carpeta, exist_ok=True)
+            nombre_archivo = f"evento_{db_evento.id}_{imagen.filename}"
+            ruta = f"{carpeta}/{nombre_archivo}"
+
+            with open(ruta, "wb") as f:
+                shutil.copyfileobj(imagen.file, f)
+
+            db_imagen = imagen_mod(
+                evento_id=db_evento.id,
+                url=ruta
+            )
+            session.add(db_imagen)
+            session.commit()
+
+        return {"status": "ok", "data": db_evento}
 
 
 @app.get("/search_event/", tags=['event'])
-def search_event(data: search_event_schema,_=Depends(verify_admit)):
+def search_event(data: search_event_schema, _=Depends(verify_admit)):
     with Session(engine) as session:
         querry = select(event_mod)
         if data.id is not None:
@@ -276,10 +343,10 @@ def search_event(data: search_event_schema,_=Depends(verify_admit)):
         if data.edad is not None:
             querry = querry.where(event_mod.edad_minima == data.edad)
         result = session.exec(querry).first()
-    
+
         if not result:
-            return {"status": "error", "message": "no existe usuario"}
-        return {"status": "ok", "data":{
+            return {"status": "error", "message": "no existe el evento"}
+        return {"status": "ok", "data": {
             "id": result.id,
             "nombre": result.nombre,
             "descripcion": result.descripcion,
@@ -287,41 +354,81 @@ def search_event(data: search_event_schema,_=Depends(verify_admit)):
             "hora": result.hora,
             "categoria": result.categoria,
             "cupos": result.cupos,
-            "edad:minima": result.edad_minima
+            "edad_minima": result.edad_minima,
+            "imagen": get_imagen_url(session, result.id)
         }}
 
 
 @app.put("/update_event/", tags=['event'])
-def update_event(data: update_event_schema,_=Depends(verify_admit)):
+async def update_event(
+    id: int = Form(...),
+    nombre_new: str = Form(None),
+    fecha_new: date = Form(None),
+    hora_new: time = Form(None),
+    categoria_new: str = Form(None),
+    cupos_new: int = Form(None),
+    edad_new: int = Form(None),
+    imagen_new: UploadFile = File(None),
+    _=Depends(verify_admit)
+):
     with Session(engine) as session:
-        result = session.exec(
-            select(event_mod).where(event_mod.id == data.id)
+        evento = session.exec(
+            select(event_mod).where(event_mod.id == id)
         ).first()
+        if not evento:
+            return {"status": "error", "message": "no existe el evento"}
 
-        if not result:
-            return {"status": "error", "mensajer":"no existe este evento"}
-        if data.nombre_new is not None: result.nombre = data.nombre_new
-        if data.fecha_new is not None: result.fecha = data.fecha_new
-        if data.hora_new is not None: result.hora = data.hora_new
-        if data.categoria_new is not None: result.categoria = data.categoria_new
-        if data.cupos_new is not None: result.cupos = data.cupos_new
-        if data.edad_new is not None: result.edad_minima = data.edad_new
+        if nombre_new: evento.nombre = nombre_new
+        if fecha_new: evento.fecha = fecha_new
+        if hora_new: evento.hora = hora_new
+        if categoria_new: evento.categoria = categoria_new
+        if cupos_new: evento.cupos = cupos_new
+        if edad_new: evento.edad_minima = edad_new
 
-        session.add(result)
+        if imagen_new:
+            # borra imagen anterior
+            img_anterior = session.exec(
+                select(imagen_mod).where(imagen_mod.evento_id == id)
+            ).first()
+            if img_anterior:
+                if os.path.exists(img_anterior.url):
+                    os.remove(img_anterior.url)
+                session.delete(img_anterior)
+
+            # guarda la nueva
+            carpeta = "backend/img"
+            nombre_archivo = f"evento_{id}_{imagen_new.filename}"
+            ruta = f"{carpeta}/{nombre_archivo}"
+            with open(ruta, "wb") as f:
+                shutil.copyfileobj(imagen_new.file, f)
+
+            nueva_img = imagen_mod(evento_id=id, url=ruta)
+            session.add(nueva_img)
+
+        session.add(evento)
         session.commit()
-        return {"status": "ok", "mesaje": "evento actualizado"}
+        return {"status": "ok", "message": "evento actualizado"}
 
 
 @app.delete("/delete_event/", tags=['event'])
-def delete_event(data: detele_event_schema,_=Depends(verify_admit)):
+def delete_event(data: detele_event_schema, _=Depends(verify_admit)):
     with Session(engine) as session:
-        querry = select(event_mod).where(
-            event_mod.id == data.id
-        )
-        result = session.exec(querry).first()
-        if not result:
-            return {"status": "error", "mesage": "no existe el evento"}
-        session.delete(result)
+        evento = session.exec(
+            select(event_mod).where(event_mod.id == data.id)
+        ).first()
+        if not evento:
+            return {"status": "error", "message": "no existe el evento"}
+
+        # borra imagen si existe
+        img = session.exec(
+            select(imagen_mod).where(imagen_mod.evento_id == data.id)
+        ).first()
+        if img:
+            if os.path.exists(img.url):
+                os.remove(img.url)
+            session.delete(img)
+
+        session.delete(evento)
         session.commit()
-        return {"status": "ok", "message": f"'{data.id}' eliminado"}
+        return {"status": "ok", "message": f"evento '{data.id}' eliminado"}
         
