@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware 
 from sqlmodel import Session, select
-from backend.model.user_mod import UserModel, engine
+from backend.model.user_mod import UserModel, engine, incripcionModel
 from backend.model import create_all_tables, user_mod
 from backend.model.eventos_mod import event_mod
 
-from backend.schema.user_sch import user_schema, login_schem
+from backend.schema.user_sch import user_schema, login_schem, incripcion
 from backend.schema.admit_sch import (
     creted_event_schema,
     search_event_schema,
@@ -40,7 +40,8 @@ def cread_user(user: user_schema):
         session.commit()
         session.refresh(db_user)
         return db_user
-    
+
+
 @app.post("/login/", tags=['user'])
 def login(data: login_schem):
     with Session(engine) as session:
@@ -54,6 +55,61 @@ def login(data: login_schem):
         return {"status": "ok", "data": {"usuario": result.nombre, "contrasena": result.contrasena}}
 
 
+@app.post("inscripcion", tags=['user'])
+def inscripcion(data: incripcion):
+    with Session(engine) as session:
+        
+        #verifica que el evento existe
+        evento = session.exec(
+            select(event_mod).where(event_mod.id == data.evento_id)
+        ).first()
+        if not evento:
+            return {"starus": "error", "mensage": "el evento no existe"}
+        
+        #verifica que el usuario existe
+        usuario = session.exec(
+            select(user_mod).where(UserModel.id == data.usuario_id)
+        ).first()
+        if not usuario:
+            return {"status": "error", "mesage": "el usuario no existe"}
+        
+        #verifica que el usaurio no este ya inscrito
+        ya_inscrito = session.exec(
+            select (incripcionModel).where(
+                incripcionModel.usuario_id == data.usuario_id,
+                incripcionModel.evento_id == data.evento_id
+            )
+        ).first()
+        if ya_inscrito:
+            return {"status": "error", "message": "el usuario ya esta inscripto en el evento"}
+
+        #verifica cupos disponibles
+        if evento.cupos >= 0:
+            return {"status": "error", "message":"no hay cupos disponibles"}
+        
+        #verifica eadd minima del evento
+        if usuario.edad < evento.edad_minima:
+            return {
+                "status": "error",
+                "message": f"el usuario debe tener minimo {evento.edad_minima} años"
+            }
+        
+        #crea la inscripcion
+        nueva_inscripcion = incripcionModel(
+            usuario_id=data.usuario_id,
+            evento_id=data.evento_id,
+            fecha=data.fecha
+        )
+
+        #descontar un cupo
+        evento.cupos -= 1
+
+        session.add(nueva_inscripcion)
+        session.add(evento)
+        session.commit()
+        session.refresh(nueva_inscripcion)
+        return {"status": "ok", "data": nueva_inscripcion}
+    
 # --- ADMIT --------------------------------------------------------------------
 
 
@@ -77,6 +133,7 @@ def created_event(data: creted_event_schema):
         session.commit()
         session.refresh(db_eventos)
         return db_eventos
+
 
 @app.get("/search_event/", tags=['event'])
 def search_event(data: search_event_schema):
@@ -109,6 +166,7 @@ def search_event(data: search_event_schema):
             "edad:minima": result.edad_minima
         }}
 
+
 @app.put("/update_event/", tags=['event'])
 def update_event(data: update_event_schema):
     with Session(engine) as session:
@@ -129,6 +187,7 @@ def update_event(data: update_event_schema):
         session.add(result)
         session.commit()
         return {"status": "ok", "mesaje": "evento actualizado"}
+
 
 @app.delete("/delete_user/", tags=['event'])
 def delete_event(data: detele_event_schema):

@@ -1,3 +1,5 @@
+from datetime import date
+
 from sqlmodel import SQLModel, Field, create_engine
 from typing import Optional
 from enum import Enum
@@ -19,3 +21,11 @@ class UserModel(SQLModel, table=True):
     contrasena: str
     edad: int
     genero: GeneroEnum
+
+class incripcionModel(SQLModel, table=True):
+    __tablename__ = "inscripcion"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    usuario_id: int
+    evento_id: int
+    fecha: date
